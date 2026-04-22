@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'login_screen.dart';
 import 'package:tracer/services/api_service.dart';
+import '../services/auth_service.dart';  
+import 'dashboard_screen.dart';        
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -92,34 +94,55 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
               ElevatedButton(
                 onPressed: () async {
-    // Vérifier que les mots de passe correspondent
-    if (_passCtrl.text != _confirmCtrl.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Les mots de passe ne correspondent pas')),
-      );
-      return;
-    }
-    
-    // Appel API
-    final api = ApiService();
-    final result = await api.register(
+                  print('=== TENTATIVE INSCRIPTION ===');
+  print('Email: ${_emailCtrl.text}');
+  print('Password: ${_passCtrl.text}');
+  // Vérifier que les mots de passe correspondent
+  if (_passCtrl.text != _confirmCtrl.text) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Les mots de passe ne correspondent pas')),
+    );
+    return;
+  }
+  
+  // Appel API
+  final api = ApiService();
+  final result = await api.register(
+    _emailCtrl.text,
+    _passCtrl.text,
+    _emailCtrl.text.split('@')[0],
+  );
+  print('RÉSULTAT: $result');
+  print('SUCCÈS: ${result['success']}');
+  
+  if (result['success']) {
+    // Sauvegarder les données utilisateur
+    await AuthService.saveUserData(
+      result['data']['token'],
       _emailCtrl.text,
-      _passCtrl.text,
-      _emailCtrl.text.split('@')[0], // Nom par défaut = partie avant @
+      result['data']['user']['name'] ?? _emailCtrl.text.split('@')[0],
     );
     
-    if (result['success']) {
-      // Navigation vers l'écran principal
+    // Afficher le message de succès
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['data']['message'])),
+        const SnackBar(content: Text('✅ Inscription réussie !')),
       );
-      Navigator.pushReplacementNamed(context, '/home'); // À créer
-    } else {
+      
+      // Rediriger vers le dashboard
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const DashboardScreen()),
+      );
+    }
+  } else {
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(result['error'].toString())),
       );
     }
-  },
+  }
+},
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color.fromARGB(255, 19, 47, 187),
                   minimumSize: const Size(double.infinity, 52),

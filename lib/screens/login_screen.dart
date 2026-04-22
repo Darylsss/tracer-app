@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'signup_screen.dart';
 import 'package:tracer/services/api_service.dart';
+import '../services/auth_service.dart';  
+import 'dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -88,23 +90,38 @@ class _LoginScreenState extends State<LoginScreen> {
               // Bouton principal
               ElevatedButton(
                 onPressed: () async {
-    final api = ApiService();
-    final result = await api.login(
+  final api = ApiService();
+  final result = await api.login(
+    _emailCtrl.text,
+    _passCtrl.text,
+  );
+  
+  if (result['success']) {
+    // Sauvegarder les données utilisateur
+    await AuthService.saveUserData(
+      result['data']['token'],
       _emailCtrl.text,
-      _passCtrl.text,
+      result['data']['user']['name'] ?? _emailCtrl.text.split('@')[0],
     );
     
-    if (result['success']) {
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['data']['message'])),
+        const SnackBar(content: Text('✅ Connexion réussie !')),
       );
-      Navigator.pushReplacementNamed(context, '/home');
-    } else {
+      
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const DashboardScreen()),
+      );
+    }
+  } else {
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(result['error'])),
       );
     }
-  },
+  }
+},
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color.fromARGB(255, 1, 75, 170),
                   minimumSize: const Size(double.infinity, 52),
